@@ -6,8 +6,9 @@
  */
 
 import React from 'react';
-import type {PropsWithChildren} from 'react';
+import type { PropsWithChildren } from 'react';
 import {
+  Dimensions,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -23,12 +24,20 @@ import {
   LearnMoreLinks,
   ReloadInstructions,
 } from 'react-native/Libraries/NewAppScreen';
+import StackBarChartComponent from './src/components/StackBarChartComponent';
+import BarChartComponent from './src/components/BarChartComponent';
+import CircularPicker from './src/components/CircularPicker';
+import CircleShadow from './src/components/CircleShadow';
+import OsmMap from './src/components/OsmMap';
+import MapComponent from './src/components/MapComponent';
+import LiveNavigationMap from './src/components/LiveNavigationMap';
+import MapWithLiveTrack from './src/components/MapWithLiveTrack';
 
 type SectionProps = PropsWithChildren<{
   title: string;
 }>;
 
-function Section({children, title}: SectionProps): React.JSX.Element {
+function Section({ children, title }: SectionProps): React.JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
   return (
     <View style={styles.sectionContainer}>
@@ -71,6 +80,8 @@ function App(): React.JSX.Element {
    * https://github.com/react-native-community/discussions-and-proposals/discussions/827
    */
   const safePadding = '5%';
+  const { height } = Dimensions.get('window');
+  const HEIGHT = height
 
   return (
     <View style={backgroundStyle}>
@@ -78,7 +89,7 @@ function App(): React.JSX.Element {
         barStyle={isDarkMode ? 'light-content' : 'dark-content'}
         backgroundColor={backgroundStyle.backgroundColor}
       />
-      <ScrollView
+      {/* <ScrollView
         style={backgroundStyle}>
         <View style={{paddingRight: safePadding}}>
           <Header/>
@@ -104,7 +115,31 @@ function App(): React.JSX.Element {
           </Section>
           <LearnMoreLinks />
         </View>
-      </ScrollView>
+      </ScrollView> */}
+      {/* <BarChartComponent /> */}
+      <View style={{ height: HEIGHT, justifyContent: 'center' }}>
+        {/* <CircleShadow size={350} /> */}
+
+        {/* <CircularPicker
+          data={[
+            { name: 'الكويت', image: require('./src/assets/images/flag/flag.png') },
+            { name: 'عمان', image: require('./src/assets/images/flag/flag.png') },
+            { name: 'الإمارات', image: require('./src/assets/images/flag/flag.png') },
+            { name: 'قطر', image: require('./src/assets/images/flag/flag.png') },
+            { name: 'السعودية', image: require('./src/assets/images/flag/flag.png') },
+            { name: 'البحرين', image: require('./src/assets/images/flag/flag.png') },
+          ]}
+        /> */}
+        {/* <OsmMap markers={[{
+          coordinate: { latitude: 25.276987, longitude: 55.296249 },
+          title: 'Dubai Marker',
+        },
+        ]} /> */}
+        {/* <MapComponent /> */}
+        <LiveNavigationMap />
+        {/* <MapWithLiveTrack /> */}
+      </View>
+
     </View>
   );
 }

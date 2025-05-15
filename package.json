@@ -10,8 +10,19 @@
     "test": "jest"
   },
   "dependencies": {
+    "@maplibre/maplibre-react-native": "^10.1.4",
+    "@react-native-community/geolocation": "^3.4.0",
+    "@vgatica9/react-native-leaflet-maps": "^0.2.3",
+    "axios": "^1.8.4",
     "react": "19.0.0",
-    "react-native": "0.78.0"
+    "react-native": "0.78.0",
+    "react-native-gifted-charts": "^1.4.58",
+    "react-native-leaflet-view": "^0.1.2",
+    "react-native-linear-gradient": "^2.8.3",
+    "react-native-reanimated": "^3.17.1",
+    "react-native-sensors": "^7.3.6",
+    "react-native-svg": "^15.11.2",
+    "react-native-webview": "^13.13.5"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
