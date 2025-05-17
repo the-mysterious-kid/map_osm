@@ -1,8 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Camera, LineLayer, MapView, MarkerView, PointAnnotation, ShapeSource, SymbolLayer, UserLocation, UserTrackingMode, VectorSource } from '@maplibre/maplibre-react-native';
-import { View, Text, StyleSheet, PermissionsAndroid, Platform, Pressable, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, PermissionsAndroid, Platform, Pressable, FlatList, ActivityIndicator, Dimensions, Image, TextInput, Keyboard } from 'react-native';
 import Geolocation from '@react-native-community/geolocation';
 import axios from 'axios';
+import { HamBurger, MicroPhone } from '../assets/images';
 
 const ORS_API_KEY = '5b3ce3597851110001cf6248a80e36938bc24bcd8a2b8c67bd29926d';
 // const ORS_API_KEY = '5b3ce3597851110001cf6248deee8cf1a4934bd6b46d392b376ec74d';
@@ -22,6 +23,9 @@ export default function MapComponent() {
   const [shouldFollowUser, setShouldFollowUser] = useState(true);
   const cameraRef = useRef<Camera>(null);
   const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState<string>("")
+  const [locationSuggestion, setLocationSuggestion] = useState({})
+
 
   console.log("shouldFollowUser=>", shouldFollowUser);
 
@@ -153,10 +157,95 @@ export default function MapComponent() {
     //   }, 5000);
     // }
   };
+  const WIDTH = Dimensions.get('window').width
+
+  const fetchLocationDetails = async (cordinates: [number, number]) => {
+    const url = `https://api.openrouteservice.org/geocode/reverse?api_key=${ORS_API_KEY}&point.lat=${cordinates[1]}&point.lon=${cordinates[0]}`
+    try {
+      const response = await axios.get(url, {
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8'
+        }
+      });
+      console.log("response__0000000", JSON.stringify(response?.data));
+    } catch (error) {
+      console.log("searchError", error);
+    }
+
+  }
+
+  const handleSuggestionSearch = async () => {
+    const url = `https://photon.komoot.io/api/?q=${searchTerm}&limit=10`
+    try {
+      const response = await axios.get(url, {
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8'
+        }
+      });
+      console.log("response__111", JSON.stringify(response?.data?.features));
+
+      if (response?.data) {
+        const altered = response?.data?.features?.map((item) => {
+          return { coordinates: item?.geometry?.coordinates, ...item?.properties }
+        })
+        setLocationSuggestion(altered)
+      }
+
+    } catch (error) {
+      console.log("searchError", error);
+
+    }
+  }
+
+  const moveOnLocation = (item) => {
+    setSearchTerm("")
+    Keyboard.dismiss()
+    fetchLocationDetails(item?.coordinates)
+    cameraRef?.current?.setCamera({
+      centerCoordinate: item?.coordinates,
+      zoomLevel: 10,
+      animationDuration: 2000,
+    })
+  }
+  const renderItem = useCallback(({ item }) => {
+    return <Pressable onPress={() => moveOnLocation(item)} style={{ paddingHorizontal: WIDTH * 0.05, paddingVertical: WIDTH * 0.05 }}>
+      <Text>{item?.name}</Text>
+      <View style={{ flexDirection: 'row' }}>
+        {item?.city && <Text>{`${item?.city},`}</Text>}
+        {item?.state && <Text>{`${item?.state},`}</Text>}
+        {item?.country && <Text>{`${item?.country}`}</Text>}
+      </View>
+    </Pressable>
+  }, [])
 
   return (
     <>
       <View style={styles.container}>
+        <View style={{ position: 'absolute', top: 50, zIndex: 1, alignSelf: 'center' }}>
+          <View style={{ height: 60, width: WIDTH * 0.9, backgroundColor: 'white', alignSelf: 'center', borderRadius: WIDTH, justifyContent: 'space-between', paddingHorizontal: WIDTH * 0.05, flexDirection: 'row', alignItems: 'center', }}>
+            <Image source={HamBurger} />
+            <TextInput
+              style={{ width: WIDTH * 0.6, height: WIDTH * 0.1 }}
+              placeholder='Search for'
+              returnKeyType='search'
+              onChangeText={(text: string) => {
+                setSearchTerm(text)
+                setTimeout(() => {
+                  searchTerm != '' && setLocationSuggestion({})
+                  handleSuggestionSearch()
+                }, 400)
+              }}
+            />
+            <Image source={MicroPhone} />
+          </View>
+          {searchTerm != '' && <FlatList
+            style={{ backgroundColor: 'white', maxHeight: WIDTH * 0.9 }}
+            data={locationSuggestion}
+            renderItem={renderItem}
+          />}
+        </View>
         <MapView
           style={styles.map}
           logoEnabled={false}
@@ -262,8 +351,7 @@ export default function MapComponent() {
           </PointAnnotation>
         </MapView>
 
-
-        <View style={styles.instructions}>
+        {/* <View style={styles.instructions}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
             <View style={{ flexDirection: 'row', margin: 10 }}>
               <Pressable onPress={() => setActiveState(wheelchairEndPoint)} style={{ backgroundColor: activeState == wheelchairEndPoint ? '#f78f63' : '#FFF', paddingVertical: 10, paddingHorizontal: 13, borderRadius: 20, marginRight: 10 }}>
@@ -282,7 +370,7 @@ export default function MapComponent() {
               {wayPoints?.[0]?.distance > 0 ? `After ${wayPoints?.[0].distance.toFixed(0)} meters ` : ''}{wayPoints?.[0]?.instruction}
             </Text>
           </View>
-        </View>
+        </View> */}
       </View>
       {/* {loading && (
         <View style={{ justifyContent: 'center', alignItems: 'center', position: 'absolute', right: 0, left: 0, top: 0, bottom: 0, backgroundColor: '#00000040' }}>
