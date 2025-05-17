@@ -24,7 +24,7 @@ export default function MapComponent() {
   const [loading, setLoading] = useState(false);
 
   console.log("shouldFollowUser=>", shouldFollowUser);
-  
+
 
   const carEndPoint = 'driving-car';
   const wheelchairEndPoint = 'wheelchair';
@@ -164,7 +164,7 @@ export default function MapComponent() {
           rotateEnabled={true}
           mapStyle={require('../components/OsmJson.json')}
           onRegionDidChange={() => handleRegionChange()}
-          // onRegionDidChange={(e) => handleRegionChange(e)}
+        // onRegionDidChange={(e) => handleRegionChange(e)}
         // onRegionDidChange={handleRegionChange}
         >
           <UserLocation
@@ -261,6 +261,7 @@ export default function MapComponent() {
             <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: 'blue', borderColor: '#fff', borderWidth: 2 }} />
           </PointAnnotation>
         </MapView>
+
 
         <View style={styles.instructions}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
