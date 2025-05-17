@@ -22,7 +22,10 @@ export default function MapComponent() {
   const [shouldFollowUser, setShouldFollowUser] = useState(true);
   const cameraRef = useRef<Camera>(null);
   const [loading, setLoading] = useState(false);
+
+  console.log("shouldFollowUser=>", shouldFollowUser);
   
+
   const carEndPoint = 'driving-car';
   const wheelchairEndPoint = 'wheelchair';
 
@@ -87,17 +90,14 @@ export default function MapComponent() {
   };
 
   const moveCamera = (coord: [number, number], heading: number) => {
-    if (userLocation && cameraRef.current) {
-      cameraRef.current?.setCamera({
-        centerCoordinate: coord,
-        followUserLocation: true,
-      followUserMode: 'normal',
-        // heading: heading,
-        zoomLevel: 17,
-        animationMode: 'flyTo',
-        // animationDuration: 1000,
-      });
-    }
+    setShouldFollowUser(true);
+    // if (userLocation && cameraRef.current) {
+    //   cameraRef.current?.setCamera({
+    //     centerCoordinate: coord,
+    //     zoomLevel: 17,
+    //     animationDuration: 1000,
+    //   });
+    // }
   };
 
   const fetchRoute = async (start: [number, number], end: [number, number]) => {
@@ -131,35 +131,27 @@ export default function MapComponent() {
     }
   };
   // console.log("cameraRef.curren=>", cameraRef.current);
-  
 
-  const reEnableFollow = () => {
-    console.log("heyy");
-    
-    cameraRef.current?.setCamera({
-      followUserLocation: true,
-      followUserMode: 'normal',
-      animationDuration: 500,
-    });
-  };
-  const handleRegionChange = ({ properties }) => {
-    console.log("hoii");
-    
-    // cameraRef.current?.setCamera({
-    //   zoomLevel: 18,
-    //   animationDuration: 500,
-    // });
-    if (properties?.isUserInteraction) {
-      console.log("yesss");
-      
-      // User has manually moved/zoomed/rotated the map
-      setShouldFollowUser(false);
+  // const reEnableFollow = () => {
+  //   cameraRef.current?.setCamera({
+  //     followUserLocation: true,
+  //     followUserMode: 'normal',
+  //     animationDuration: 500,
+  //   });
+  // };
+  const handleRegionChange = () => {
+    setShouldFollowUser(false);
+    // if (properties?.isUserInteraction) {
+    //   console.log("yesss");
 
-      // Re-enable follow mode after 5 seconds (or after a button press)
-      setTimeout(() => {
-        setShouldFollowUser(true);
-      }, 5000);
-    }
+    //   // User has manually moved/zoomed/rotated the map
+    //   setShouldFollowUser(false);
+
+    //   // Re-enable follow mode after 5 seconds (or after a button press)
+    //   setTimeout(() => {
+    //     setShouldFollowUser(true);
+    //   }, 5000);
+    // }
   };
 
   return (
@@ -171,8 +163,9 @@ export default function MapComponent() {
           compassEnabled={true}
           rotateEnabled={true}
           mapStyle={require('../components/OsmJson.json')}
+          onRegionDidChange={() => handleRegionChange()}
           // onRegionDidChange={(e) => handleRegionChange(e)}
-        onRegionDidChange={handleRegionChange}
+        // onRegionDidChange={handleRegionChange}
         >
           <UserLocation
             visible={true}
@@ -194,7 +187,8 @@ export default function MapComponent() {
               animationMode="flyTo"
               animationDuration={1000}
               followUserLocation={shouldFollowUser}
-              followUserMode={UserTrackingMode.FollowWithHeading}
+              followUserMode={UserTrackingMode.FollowWithCourse}
+              // followUserMode={UserTrackingMode.FollowWithHeading}  // The map will rotate based on the direction the user is facing
               heading={10}
             />
           )}
@@ -284,9 +278,8 @@ export default function MapComponent() {
           </View>
           <View style={{ backgroundColor: '#fff', padding: 12, borderTopLeftRadius: 12, borderTopRightRadius: 12, height: 110, paddingBottom: 45 }}>
             <Text style={styles.title}>
-            {wayPoints?.[0]?.distance > 0 ? `After ${wayPoints?.[0].distance.toFixed(0)} meters ` : ''}{wayPoints?.[0]?.instruction}
-              </Text>
-            {console.log("waypoints=>", wayPoints)}
+              {wayPoints?.[0]?.distance > 0 ? `After ${wayPoints?.[0].distance.toFixed(0)} meters ` : ''}{wayPoints?.[0]?.instruction}
+            </Text>
           </View>
         </View>
       </View>
