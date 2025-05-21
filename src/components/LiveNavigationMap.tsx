@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Camera, LineLayer, MapView, MarkerView, PointAnnotation, ShapeSource, SymbolLayer, UserLocation, UserTrackingMode, VectorSource } from '@maplibre/maplibre-react-native';
-import { View, Text, StyleSheet, PermissionsAndroid, Platform, Pressable, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, PermissionsAndroid, Platform, Pressable, FlatList, ActivityIndicator, Alert } from 'react-native';
 import Geolocation from '@react-native-community/geolocation';
-import axios from 'axios';
+import axios, { Axios } from 'axios';
 
 const ORS_API_KEY = '5b3ce3597851110001cf6248a80e36938bc24bcd8a2b8c67bd29926d';
 // const ORS_API_KEY = '5b3ce3597851110001cf6248deee8cf1a4934bd6b46d392b376ec74d';
@@ -22,6 +22,7 @@ export default function MapComponent() {
   const [shouldFollowUser, setShouldFollowUser] = useState(true);
   const cameraRef = useRef<Camera>(null);
   const [loading, setLoading] = useState(false);
+  const [favorites,setFavorites] =useState([])
   
   const carEndPoint = 'driving-car';
   const wheelchairEndPoint = 'wheelchair';
@@ -162,6 +163,103 @@ export default function MapComponent() {
     }
   };
 
+
+  const getAddressFromCoordinates = async(coords:[number, number])=>{
+      try {
+          const url = `https://nominatim.openstreetmap.org/reverse?lat=${coords[1]}&lon=${coords[0]}&format=json`
+          const response = await fetch(url,{
+            headers:{
+            'User-Agent':'test_app'
+          }})
+          const data = await response.json();
+          console.log('resp======',data?.address?.road)
+          Alert.alert('Save Location',
+            `Do you want save ${data?.address?.road? data?.address?.road:''}`,
+            [
+              {
+                text:"Cancel"
+              },
+              {
+                text:"Save",
+                onPress:()=>{
+                  const fav = {
+                    id: Date.now().toString(),
+                    name:'Test',
+                    coordinates: coords,
+                  }
+                const Duplicated = favorites?.some((i)=>{
+                    i?.coordinates[0] === fav?.coordinates[0] && i?.coordinates[1] === fav?.coordinates[1]
+                  })
+                if (!Duplicated){
+                  favorites?.push(fav)
+                }
+                console.log("favorites",favorites);
+                
+                }
+              }
+            ]
+          )
+      } catch (error) {
+          console.error(error)
+      }
+  }
+
+  const fetchAccessibilityData = async () => {
+    setLoading(true);
+    const lat = 12.9716;  // example latitude
+    const lon = 77.5946;
+    // const query = `
+    //   [out:json][timeout:25];
+    //   (
+    //     node(around:100, ${lat}, ${lon})["amenity"="parking"];
+    //     way(around:100, ${lat}, ${lon})["amenity"="parking"];
+    //     node(around:100, ${lat}, ${lon})["wheelchair"];
+    //     node(around:100, ${lat}, ${lon})["toilets:wheelchair"];
+    //     node(around:100, ${lat}, ${lon})["entrance"="main"]["wheelchair"];
+    //     node(around:100, ${lat}, ${lon})["ramp"="yes"];
+    //   );
+    //   out body;
+    //   >;
+    //   out skel qt;
+    // `;
+    const query = `
+    [out:json][timeout:25];
+    (
+      node(around:100, ${lat}, ${lon})["amenity"~"cafe|restaurant|fast_food"];
+      way(around:100, ${lat}, ${lon})["amenity"~"cafe|restaurant|fast_food"];
+
+      node(around:100, ${lat}, ${lon})["ramp"="yes"];
+      way(around:100, ${lat}, ${lon})["ramp"="yes"];
+
+      node(around:100, ${lat}, ${lon})["amenity"="parking"];
+      way(around:100, ${lat}, ${lon})["amenity"="parking"];
+
+      way(around:100, ${lat}, ${lon})["highway"~"footway|path|pedestrian|cycleway"];
+    );
+    out body;
+    >;
+    out skel qt;
+  `;
+    try {
+      const response = await fetch('https://overpass-api.de/api/interpreter', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `data=${encodeURIComponent(query)}`,
+      });
+
+      const json = await response.json();
+      console.log("json",json);
+      
+      // setData(json.elements || []);
+    } catch (error) {
+      console.error('Error fetching Overpass API:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <>
       <View style={styles.container}>
@@ -173,7 +271,26 @@ export default function MapComponent() {
           mapStyle={require('../components/OsmJson.json')}
           // onRegionDidChange={(e) => handleRegionChange(e)}
         onRegionDidChange={handleRegionChange}
-        >
+        onPress={(e) => {
+        //  console.log('dddddd======',e?.geometry?.coordinates)
+         getAddressFromCoordinates(e?.geometry?.coordinates)
+         fetchAccessibilityData(e?.geometry?.coordinates[0],e?.geometry?.coordinates[1])
+         }}>
+        {favorites?.map((fav) => (
+          <PointAnnotation
+            key={fav.id}
+            id={fav.id}
+            coordinate={fav?.coordinates}
+          >
+            <View style={{
+              width: 14,
+              height: 14,
+              backgroundColor: 'orange',
+              borderRadius: 7,
+              borderWidth: 2,
+              borderColor: 'white'
+            }} />
+          </PointAnnotation>))}
           <UserLocation
             visible={true}
             showsUserHeadingIndicator={true}
