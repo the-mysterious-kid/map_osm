@@ -25,10 +25,7 @@ export default function MapComponent() {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState<string>("")
   const [locationSuggestion, setLocationSuggestion] = useState({})
-
-
-  console.log("shouldFollowUser=>", shouldFollowUser);
-
+  const [searchLocation, setSearchLocation] = useState([])
 
   const carEndPoint = 'driving-car';
   const wheelchairEndPoint = 'wheelchair';
@@ -200,6 +197,7 @@ export default function MapComponent() {
   }
 
   const moveOnLocation = (item) => {
+    setSearchLocation(item)
     setSearchTerm("")
     Keyboard.dismiss()
     fetchLocationDetails(item?.coordinates)
@@ -281,6 +279,10 @@ export default function MapComponent() {
               heading={10}
             />
           )}
+
+          {searchLocation?.coordinates && <PointAnnotation id="user-location" coordinate={searchLocation?.coordinates}>
+            <View style={{ width: 18, height: 18, borderRadius: 8, backgroundColor: 'red', borderColor: '#fff', borderWidth: 2 }} />
+          </PointAnnotation>}
           {userLocation && (
             <PointAnnotation id="user-location" coordinate={userLocation}>
               <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: 'blue', borderColor: '#fff', borderWidth: 2 }} />
