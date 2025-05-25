@@ -21,6 +21,7 @@
     "react-native-linear-gradient": "^2.8.3",
     "react-native-reanimated": "^3.17.1",
     "react-native-sensors": "^7.3.6",
+    "react-native-simple-toast": "^3.3.2",
     "react-native-svg": "^15.11.2",
     "react-native-webview": "^13.13.5"
   },

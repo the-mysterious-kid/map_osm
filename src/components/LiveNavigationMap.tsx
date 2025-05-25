@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Camera, LineLayer, MapView, MarkerView, PointAnnotation, ShapeSource, SymbolLayer, UserLocation, UserTrackingMode, VectorSource } from '@maplibre/maplibre-react-native';
 import { View, Text, StyleSheet, PermissionsAndroid, Platform, Pressable, FlatList, ActivityIndicator, Dimensions, Image, TextInput, Keyboard } from 'react-native';
 import Geolocation from '@react-native-community/geolocation';
+import Toast from 'react-native-simple-toast';
 import axios from 'axios';
 import { HamBurger, MicroPhone } from '../assets/images';
 
@@ -27,6 +28,9 @@ export default function MapComponent() {
   const [locationSuggestion, setLocationSuggestion] = useState({})
   const [searchLocation, setSearchLocation] = useState([])
 
+  const [pathCoordinates, setPathCoordinates] = useState([])
+
+
   const carEndPoint = 'driving-car';
   const wheelchairEndPoint = 'wheelchair';
 
@@ -40,7 +44,7 @@ export default function MapComponent() {
 
     if (userLocation) {
       // setLoading(true)
-      fetchRoute(userLocation, [DESTINATION.lon, DESTINATION.lat]);
+      // fetchRoute(userLocation, [DESTINATION.lon, DESTINATION.lat]);
       // startWatchingLocation();
     }
   }, [userLocation, activeState]);
@@ -165,7 +169,7 @@ export default function MapComponent() {
           'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8'
         }
       });
-      console.log("response__0000000", JSON.stringify(response?.data));
+      // console.log("response__0000000", JSON.stringify(response?.data));
     } catch (error) {
       console.log("searchError", error);
     }
@@ -181,7 +185,7 @@ export default function MapComponent() {
           'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8'
         }
       });
-      console.log("response__111", JSON.stringify(response?.data?.features));
+      // console.log("response__111", JSON.stringify(response?.data?.features));
 
       if (response?.data) {
         const altered = response?.data?.features?.map((item) => {
@@ -203,20 +207,36 @@ export default function MapComponent() {
     fetchLocationDetails(item?.coordinates)
     cameraRef?.current?.setCamera({
       centerCoordinate: item?.coordinates,
-      zoomLevel: 10,
+      zoomLevel: 17,
       animationDuration: 2000,
     })
   }
   const renderItem = useCallback(({ item }) => {
-    return <Pressable onPress={() => moveOnLocation(item)} style={{ paddingHorizontal: WIDTH * 0.05, paddingVertical: WIDTH * 0.05 }}>
-      <Text>{item?.name}</Text>
-      <View style={{ flexDirection: 'row' }}>
-        {item?.city && <Text>{`${item?.city},`}</Text>}
-        {item?.state && <Text>{`${item?.state},`}</Text>}
-        {item?.country && <Text>{`${item?.country}`}</Text>}
-      </View>
-    </Pressable>
+    return (
+      <Pressable onPress={() => moveOnLocation(item)} style={{ paddingHorizontal: WIDTH * 0.05, paddingVertical: WIDTH * 0.05 }}>
+        <Text>{item?.name}</Text>
+        <View style={{ flexDirection: 'row' }}>
+          {item?.city && <Text>{`${item?.city},`}</Text>}
+          {item?.state && <Text>{`${item?.state},`}</Text>}
+          {item?.country && <Text>{`${item?.country}`}</Text>}
+        </View>
+      </Pressable>
+    )
   }, [])
+
+  console.log("wheelchairEndPoint=>", pathCoordinates[0]);
+  console.log("wheelchairEndPoint1=>", searchLocation);
+
+
+  const addtoRoute = () => {
+    if (pathCoordinates[0] === searchLocation) {
+      Toast.show('Add a new location');
+    } else {
+      const route = [];
+      route.push(searchLocation)
+      setPathCoordinates(route)
+    }
+  }
 
   return (
     <>
@@ -281,7 +301,7 @@ export default function MapComponent() {
           )}
 
           {searchLocation?.coordinates && <PointAnnotation id="user-location" coordinate={searchLocation?.coordinates}>
-            <View style={{ width: 18, height: 18, borderRadius: 8, backgroundColor: 'red', borderColor: '#fff', borderWidth: 2 }} />
+            <View style={{ width: 18, height: 18, borderRadius: 15, backgroundColor: 'red', borderColor: '#fff', borderWidth: 2 }} />
           </PointAnnotation>}
           {userLocation && (
             <PointAnnotation id="user-location" coordinate={userLocation}>
@@ -352,7 +372,21 @@ export default function MapComponent() {
             <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: 'blue', borderColor: '#fff', borderWidth: 2 }} />
           </PointAnnotation>
         </MapView>
-
+        {searchLocation !== [] && (
+          <View style={{ flexDirection: 'row', gap: 20, position: 'absolute', bottom: 15, left: 15, }}>
+            <Pressable onPress={() => addtoRoute()} style={{ backgroundColor: '#fff', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 20 }}>
+              {pathCoordinates?.length > 0 ? <Text>Add one more location to get route</Text> : <Text>Add to route</Text>}
+            </Pressable>
+            {pathCoordinates?.length > 0 && (
+              <Pressable onPress={() => {
+                setSearchLocation('')
+                setPathCoordinates([])
+              }} style={{ backgroundColor: '#fff', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 20 }}>
+                <Text>Clear route</Text>
+              </Pressable>
+            )}
+          </View>
+        )}
         {/* <View style={styles.instructions}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
             <View style={{ flexDirection: 'row', margin: 10 }}>
