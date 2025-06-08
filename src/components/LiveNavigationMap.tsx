@@ -5,6 +5,7 @@ import Geolocation from '@react-native-community/geolocation';
 import Toast from 'react-native-simple-toast';
 import axios from 'axios';
 import { HamBurger, MicroPhone } from '../assets/images';
+import isEmpty from 'lodash/isEmpty'
 
 const ORS_API_KEY = '5b3ce3597851110001cf6248a80e36938bc24bcd8a2b8c67bd29926d';
 // const ORS_API_KEY = '5b3ce3597851110001cf6248deee8cf1a4934bd6b46d392b376ec74d';
@@ -112,8 +113,8 @@ export default function MapComponent() {
       // const url = 'https://api.openrouteservice.org/v2/directions/driving-car/geojson';
       const body = { coordinates: [start, end] };
       console.log("body=>", body);
-      
-
+      setLoading(true)
+      setPathCoordinates([start, end])
       const response = await axios.post(url, body, {
         headers: {
           Authorization: ORS_API_KEY,
@@ -121,20 +122,25 @@ export default function MapComponent() {
         },
       });
       console.log("response=>", response);
-      
+      if (response.data) {
+        const coords = response.data.features[0].geometry.coordinates;
+
+        const steps = response.data.features[0].properties.segments[0].steps;
+        const stepInstructions = steps.map((step: any) => step.instruction);
+
+        setWayPoints(response.data.features[0].properties.segments[0].steps);
+        setRouteCoords(coords);
+        setInstructions(stepInstructions);
+        setLoading(false)
+      }
+
       // if (response) {
       //   setLoading(false)
       // }
 
-      const coords = response.data.features[0].geometry.coordinates;
 
-      const steps = response.data.features[0].properties.segments[0].steps;
-      const stepInstructions = steps.map((step: any) => step.instruction);
-
-      setWayPoints(response.data.features[0].properties.segments[0].steps);
-      setRouteCoords(coords);
-      setInstructions(stepInstructions);
     } catch (error) {
+      setLoading(false)
       // setLoading(false)
       console.error('Route error:', JSON.stringify(error));
     }
@@ -144,6 +150,8 @@ export default function MapComponent() {
     setShouldFollowUser(false);
   };
   const WIDTH = Dimensions.get('window').width
+  const HEIGHT = Dimensions.get('window').height
+
 
   const fetchLocationDetails = async (cordinates: [number, number]) => {
     const url = `https://api.openrouteservice.org/geocode/reverse?api_key=${ORS_API_KEY}&point.lat=${cordinates[1]}&point.lon=${cordinates[0]}`
@@ -198,11 +206,16 @@ export default function MapComponent() {
   }
 
   const getToCurrentLocation = () => {
-    cameraRef?.current?.setCamera({
-      centerCoordinate: userLocation,
-      zoomLevel: 17,
-      animationDuration: 2000,
-    })
+    // cameraRef?.current?.setCamera({
+    //   centerCoordinate: userLocation,
+    //   zoomLevel: 17,
+    //   animationDuration: 2000,
+    // })
+    let temp = []
+    temp.push([pathCoordinates[0][0], pathCoordinates[0][1]], [searchLocation.coordinates
+    [0], searchLocation.coordinates
+    [1]])
+    fetchRoute(temp[0], temp[1])
   }
   const renderItem = useCallback(({ item }) => {
     return (
@@ -229,7 +242,7 @@ export default function MapComponent() {
   //     const route = pathCoordinates;
   //     route.push(searchLocation?.coordinates)
   //     console.log("route=>", route);
-      
+
   //     setPathCoordinates(route)
   //   }
   // }
@@ -237,14 +250,14 @@ export default function MapComponent() {
   const addtoRoute = () => {
     console.log("hii");
     setSearchTerm('');
-  
+
     const [searchLon, searchLat] = searchLocation.coordinates;
-  
+
     const exists = pathCoordinates.some(
       ([pathLon, pathLat]) =>
         pathLon === searchLon && pathLat === searchLat
     );
-  
+
     if (exists) {
       Toast.show('Add a new location');
     } else {
@@ -253,7 +266,6 @@ export default function MapComponent() {
       setPathCoordinates(updatedRoute);
     }
   };
-  
 
   return (
     <>
@@ -344,7 +356,7 @@ export default function MapComponent() {
               />
             </ShapeSource>
           )}
-          {userLocation && routeCoords.length > 0 && (
+          {/* {userLocation && routeCoords.length > 0 && (
             <ShapeSource id="connectorSource" shape={{
               type: 'Feature',
               geometry: {
@@ -383,11 +395,14 @@ export default function MapComponent() {
                 }}
               />
             </ShapeSource>
-          )}
+          )} */}
 
-          <PointAnnotation id="destination" coordinate={[DESTINATION.lon, DESTINATION.lat]} >
+          {/* <PointAnnotation id="destination" coordinate={[DESTINATION.lon, DESTINATION.lat]} >
             <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: 'blue', borderColor: '#fff', borderWidth: 2 }} />
-          </PointAnnotation>
+          </PointAnnotation> */}
+          {!isEmpty(pathCoordinates) && <PointAnnotation id="destination" coordinate={[pathCoordinates[0][0], pathCoordinates[0][1]]} >
+            <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: 'blue', borderColor: '#fff', borderWidth: 2 }} />
+          </PointAnnotation>}
         </MapView>
         <View style={{ position: 'absolute', bottom: 15, left: 15, right: 15, justifyContent: 'space-between', flexDirection: 'row' }}>
           {searchLocation !== [] && (
@@ -399,6 +414,9 @@ export default function MapComponent() {
                 <Pressable onPress={() => {
                   setSearchLocation('')
                   setPathCoordinates([])
+                  setWayPoints([]);
+                  setRouteCoords([]);
+                  setInstructions([])
                   setSearchTerm('')
                 }} style={{ backgroundColor: '#fff', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 20, alignSelf: 'center' }}>
                   <Text>Clear route</Text>
@@ -407,14 +425,17 @@ export default function MapComponent() {
             </View>
           )}
           <View>
-          <Pressable onPress={() => getToCurrentLocation()} style={{ backgroundColor: '#fff', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 20, alignSelf: 'center' }}>
-            <Text>Get route</Text>
-          </Pressable>
-          <Pressable onPress={() => fetchRoute(pathCoordinates)} style={{ backgroundColor: '#fff', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 20, alignSelf: 'center' }}>
-            <Text>Current</Text>
-          </Pressable>
+            <Pressable onPress={() => getToCurrentLocation()} style={{ backgroundColor: '#fff', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 20, alignSelf: 'center' }}>
+              <Text>Get route</Text>
+            </Pressable>
+            <Pressable onPress={() => fetchRoute(pathCoordinates)} style={{ backgroundColor: '#fff', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 20, alignSelf: 'center' }}>
+              <Text>Current</Text>
+            </Pressable>
           </View>
         </View>
+        <>
+          {loading && <View style={{ backgroundColor: '#00000090', position: 'absolute', top: 0, width: WIDTH, height: HEIGHT, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator style={{ height: 50, width: 50 }} size={'large'} /></View>}
+        </>
         {/* <View style={styles.instructions}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
             <View style={{ flexDirection: 'row', margin: 10 }}>
