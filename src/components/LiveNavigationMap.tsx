@@ -111,6 +111,8 @@ export default function MapComponent() {
       // const url = 'https://api.openrouteservice.org/v2/directions/wheelchair/geojson';
       // const url = 'https://api.openrouteservice.org/v2/directions/driving-car/geojson';
       const body = { coordinates: [start, end] };
+      console.log("body=>", body);
+      
 
       const response = await axios.post(url, body, {
         headers: {
@@ -118,6 +120,8 @@ export default function MapComponent() {
           'Content-Type': 'application/json',
         },
       });
+      console.log("response=>", response);
+      
       // if (response) {
       //   setLoading(false)
       // }
@@ -135,28 +139,9 @@ export default function MapComponent() {
       console.error('Route error:', JSON.stringify(error));
     }
   };
-  // console.log("cameraRef.curren=>", cameraRef.current);
 
-  // const reEnableFollow = () => {
-  //   cameraRef.current?.setCamera({
-  //     followUserLocation: true,
-  //     followUserMode: 'normal',
-  //     animationDuration: 500,
-  //   });
-  // };
   const handleRegionChange = () => {
     setShouldFollowUser(false);
-    // if (properties?.isUserInteraction) {
-    //   console.log("yesss");
-
-    //   // User has manually moved/zoomed/rotated the map
-    //   setShouldFollowUser(false);
-
-    //   // Re-enable follow mode after 5 seconds (or after a button press)
-    //   setTimeout(() => {
-    //     setShouldFollowUser(true);
-    //   }, 5000);
-    // }
   };
   const WIDTH = Dimensions.get('window').width
 
@@ -211,6 +196,14 @@ export default function MapComponent() {
       animationDuration: 2000,
     })
   }
+
+  const getToCurrentLocation = () => {
+    cameraRef?.current?.setCamera({
+      centerCoordinate: userLocation,
+      zoomLevel: 17,
+      animationDuration: 2000,
+    })
+  }
   const renderItem = useCallback(({ item }) => {
     return (
       <Pressable onPress={() => moveOnLocation(item)} style={{ paddingHorizontal: WIDTH * 0.05, paddingVertical: WIDTH * 0.05 }}>
@@ -224,19 +217,43 @@ export default function MapComponent() {
     )
   }, [])
 
-  console.log("wheelchairEndPoint=>", pathCoordinates[0]);
+  console.log("wheelchairEndPoint=>", pathCoordinates);
   console.log("wheelchairEndPoint1=>", searchLocation);
 
+  // const addtoRoute = () => {
+  //   console.log("hii");
+  //   setSearchTerm('')
+  //   if (pathCoordinates[0] === searchLocation?.coordinates) {
+  //     Toast.show('Add a new location');
+  //   } else {
+  //     const route = pathCoordinates;
+  //     route.push(searchLocation?.coordinates)
+  //     console.log("route=>", route);
+      
+  //     setPathCoordinates(route)
+  //   }
+  // }
 
   const addtoRoute = () => {
-    if (pathCoordinates[0] === searchLocation) {
+    console.log("hii");
+    setSearchTerm('');
+  
+    const [searchLon, searchLat] = searchLocation.coordinates;
+  
+    const exists = pathCoordinates.some(
+      ([pathLon, pathLat]) =>
+        pathLon === searchLon && pathLat === searchLat
+    );
+  
+    if (exists) {
       Toast.show('Add a new location');
     } else {
-      const route = [];
-      route.push(searchLocation)
-      setPathCoordinates(route)
+      const updatedRoute = [...pathCoordinates, searchLocation.coordinates];
+      console.log("route =>", updatedRoute);
+      setPathCoordinates(updatedRoute);
     }
-  }
+  };
+  
 
   return (
     <>
@@ -372,21 +389,32 @@ export default function MapComponent() {
             <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: 'blue', borderColor: '#fff', borderWidth: 2 }} />
           </PointAnnotation>
         </MapView>
-        {searchLocation !== [] && (
-          <View style={{ flexDirection: 'row', gap: 20, position: 'absolute', bottom: 15, left: 15, }}>
-            <Pressable onPress={() => addtoRoute()} style={{ backgroundColor: '#fff', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 20 }}>
-              {pathCoordinates?.length > 0 ? <Text>Add one more location to get route</Text> : <Text>Add to route</Text>}
-            </Pressable>
-            {pathCoordinates?.length > 0 && (
-              <Pressable onPress={() => {
-                setSearchLocation('')
-                setPathCoordinates([])
-              }} style={{ backgroundColor: '#fff', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 20 }}>
-                <Text>Clear route</Text>
+        <View style={{ position: 'absolute', bottom: 15, left: 15, right: 15, justifyContent: 'space-between', flexDirection: 'row' }}>
+          {searchLocation !== [] && (
+            <View style={{ flexDirection: 'row', gap: 20 }}>
+              <Pressable onPress={() => addtoRoute()} style={{ backgroundColor: '#fff', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 20, alignSelf: 'center' }}>
+                {pathCoordinates?.length > 0 ? <Text>{`Add more location \nto the route`}</Text> : <Text>Add to route</Text>}
               </Pressable>
-            )}
+              {pathCoordinates?.length > 0 && (
+                <Pressable onPress={() => {
+                  setSearchLocation('')
+                  setPathCoordinates([])
+                  setSearchTerm('')
+                }} style={{ backgroundColor: '#fff', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 20, alignSelf: 'center' }}>
+                  <Text>Clear route</Text>
+                </Pressable>
+              )}
+            </View>
+          )}
+          <View>
+          <Pressable onPress={() => getToCurrentLocation()} style={{ backgroundColor: '#fff', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 20, alignSelf: 'center' }}>
+            <Text>Get route</Text>
+          </Pressable>
+          <Pressable onPress={() => fetchRoute(pathCoordinates)} style={{ backgroundColor: '#fff', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 20, alignSelf: 'center' }}>
+            <Text>Current</Text>
+          </Pressable>
           </View>
-        )}
+        </View>
         {/* <View style={styles.instructions}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
             <View style={{ flexDirection: 'row', margin: 10 }}>
