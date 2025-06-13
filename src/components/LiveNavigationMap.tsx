@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Camera, LineLayer, MapView, MarkerView, PointAnnotation, ShapeSource, SymbolLayer, UserLocation, UserTrackingMode, VectorSource } from '@maplibre/maplibre-react-native';
+import { Camera, CameraRef, LineLayer, MapView, MarkerView, PointAnnotation, ShapeSource, SymbolLayer, UserLocation, UserTrackingMode, VectorSource } from '@maplibre/maplibre-react-native';
 import { View, Text, StyleSheet, PermissionsAndroid, Platform, Pressable, FlatList, ActivityIndicator, Dimensions, Image, TextInput, Keyboard } from 'react-native';
 import Geolocation from '@react-native-community/geolocation';
 import Toast from 'react-native-simple-toast';
 import axios from 'axios';
-import { HamBurger, MicroPhone } from '../assets/images';
+import { favouriteIcon, HamBurger, loveIcon, loveIcon2, MicroPhone } from '../assets/images';
 import isEmpty from 'lodash/isEmpty'
 
 const ORS_API_KEY = '5b3ce3597851110001cf6248a80e36938bc24bcd8a2b8c67bd29926d';
@@ -23,7 +23,7 @@ export default function MapComponent() {
   const [routeCoords, setRouteCoords] = useState<[number, number][]>([]);
   const [instructions, setInstructions] = useState<string[]>([]);
   const [shouldFollowUser, setShouldFollowUser] = useState(true);
-  const cameraRef = useRef<Camera>(null);
+  const cameraRef = useRef<CameraRef>(null);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState<string>("")
   const [locationSuggestion, setLocationSuggestion] = useState({})
@@ -453,9 +453,12 @@ export default function MapComponent() {
           {!isEmpty(locationOnPress) && !isEmpty(coordinateDetails) && < View style={{ width: WIDTH, height: HEIGHT * 0.3, backgroundColor: 'white', borderRadius: 10, padding: WIDTH * 0.05 }}>
             <Text style={{ color: 'black', fontSize: 20 }}>{coordinateDetails?.features?.[0]?.properties?.label}</Text>
             <Text style={{ color: 'black', fontSize: 15 }}>{coordinateDetails?.features?.[0]?.properties?.county}, {coordinateDetails?.features?.[0]?.properties?.region}</Text>
-            <Pressable onPress={() => addtoRoute()} style={{ backgroundColor: '#3275a8', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 20, maxWidth: WIDTH * 0.3, justifyContent: 'center', alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}><Pressable onPress={() => addtoRoute()} style={{ backgroundColor: '#3275a8', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 20, maxWidth: WIDTH * 0.3, justifyContent: 'center', alignItems: 'center' }}>
               {pathCoordinates?.length > 0 ? <Text style={{ color: 'white' }}>{`Add more location \nto the route`}</Text> : <Text style={{ color: 'white' }}>Add to route</Text>}
             </Pressable>
+              <Pressable style={{ height: WIDTH * 0.08, width: WIDTH * 0.08 }}><Image source={loveIcon2} resizeMode='contain' style={{ tintColor: 'black' }} /></Pressable>
+            </View>
+
 
           </View>}
 
