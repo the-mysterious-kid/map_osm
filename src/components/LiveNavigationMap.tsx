@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Camera, CameraRef, LineLayer, MapView, MarkerView, PointAnnotation, ShapeSource, SymbolLayer, UserLocation, UserTrackingMode, VectorSource } from '@maplibre/maplibre-react-native';
-import { View, Text, StyleSheet, PermissionsAndroid, Platform, Pressable, FlatList, ActivityIndicator, Dimensions, Image, TextInput, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, PermissionsAndroid, Platform, Pressable, FlatList, ActivityIndicator, Dimensions, Image, TextInput, Keyboard, Alert } from 'react-native';
 import Geolocation from '@react-native-community/geolocation';
 import Toast from 'react-native-simple-toast';
 import axios from 'axios';
@@ -32,6 +32,9 @@ export default function MapComponent() {
   const [pathCoordinates, setPathCoordinates] = useState([])
   const [locationOnPress, setLocationOnPress] = useState([])
   const [coordinateDetails, setCoordinateDetails] = useState([])
+  const [favourites, setFavourites] = useState([])
+  const [routeData, setRouteData] = useState([])
+
 
 
 
@@ -217,11 +220,17 @@ export default function MapComponent() {
     //   zoomLevel: 17,
     //   animationDuration: 2000,
     // })
-    const destination = searchLocation.coordinates ? [searchLocation.coordinates[0], searchLocation.coordinates[1]] : [locationOnPress[0], locationOnPress[1]]
+    if (isEmpty(pathCoordinates)) {
+      Toast.show('Add location')
 
-    let temp = []
-    temp.push([pathCoordinates[0][0], pathCoordinates[0][1]], destination)
-    fetchRoute(temp[0], temp[1])
+    } else {
+      const destination = searchLocation.coordinates ? [searchLocation.coordinates[0], searchLocation.coordinates[1]] : [locationOnPress[0], locationOnPress[1]]
+
+      let temp = []
+      temp.push([pathCoordinates?.[0]?.[0], pathCoordinates?.[0]?.[1]], destination)
+      // fetchRoute(temp[0], temp[1])
+    }
+
   }
   const renderItem = useCallback(({ item }) => {
     return (
@@ -236,8 +245,6 @@ export default function MapComponent() {
     )
   }, [])
 
-  console.log("wheelchairEndPoint=>", pathCoordinates);
-  console.log("wheelchairEndPoint1=>", searchLocation);
 
   // const addtoRoute = () => {
   //   console.log("hii");
@@ -253,25 +260,52 @@ export default function MapComponent() {
   //   }
   // }
 
-  const addtoRoute = () => {
-    console.log("hii");
+  const addtoRoute = (coordinate) => {
     setSearchTerm('');
-
-    const [searchLon, searchLat] = searchLocation.coordinates || locationOnPress;
-
-    const exists = pathCoordinates.some(
+    const [searchLon, searchLat] = coordinate
+    const exists = routeData?.some(
       ([pathLon, pathLat]) =>
         pathLon === searchLon && pathLat === searchLat
     );
+    if (routeData.length <= 1) {
+      if (exists) {
+        Toast.show('Add a new location');
+      } else {
+        Toast.show('Added');
 
-    if (exists) {
-      Toast.show('Add a new location');
-    } else {
-      const updatedRoute = [...pathCoordinates, searchLocation.coordinates || locationOnPress];
-      console.log("route =>", updatedRoute);
-      setPathCoordinates(updatedRoute);
+        routeData.push(coordinate)
+      }
+      setRouteData([...routeData])
     }
-  };
+    else {
+      fetchRoute(routeData[0], routeData[1])
+    }
+  }
+
+  const isFavourite = favourites.some(([lat, lon]) => lat === locationOnPress[0] && lon === locationOnPress[1])
+
+  const handleFavourite = (item) => {
+    let fav = []
+    if (isFavourite) {
+      fav.filter((data) => data[0] != item[0] && data[1] != item[1])
+    } else {
+      fav.push(item)
+    }
+    setFavourites(fav)
+  }
+
+  const clearRoute = () => {
+    setSearchLocation('')
+    setPathCoordinates([])
+    setWayPoints([]);
+    setRouteCoords([]);
+    setInstructions([])
+    setSearchTerm('')
+    setLocationOnPress([])
+    setRouteData([])
+    setCoordinateDetails([])
+  }
+
 
   return (
     <>
@@ -424,39 +458,43 @@ export default function MapComponent() {
             {searchLocation !== [] && (
               <View style={{ flexDirection: 'row', gap: 20 }}>
 
-                {isEmpty(locationOnPress) && <Pressable onPress={() => addtoRoute()} style={{ backgroundColor: '#fff', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 20, alignSelf: 'center' }}>
+                {/* {isEmpty(locationOnPress) && <Pressable onPress={() => addtoRoute()} style={{ backgroundColor: '#fff', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 20, alignSelf: 'center' }}>
                   {pathCoordinates?.length > 0 ? <Text>{`Add more location \nto the route`}</Text> : <Text>Add to route</Text>}
-                </Pressable>}
-                {pathCoordinates?.length > 0 && (
-                  <Pressable onPress={() => {
-                    setSearchLocation('')
-                    setPathCoordinates([])
-                    setWayPoints([]);
-                    setRouteCoords([]);
-                    setInstructions([])
-                    setSearchTerm('')
-                    setLocationOnPress([])
-                  }} style={{ backgroundColor: '#fff', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 20, alignSelf: 'center' }}>
-                    <Text>Clear route</Text>
-                  </Pressable>
-                )}
+                </Pressable>} */}
               </View>
 
             )}
-            <Pressable onPress={() => getToCurrentLocation()} style={{ backgroundColor: '#fff', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 20, alignSelf: 'center' }}>
-              <Text>Get route</Text>
-            </Pressable>
-            <Pressable onPress={() => fetchRoute(pathCoordinates)} style={{ backgroundColor: '#fff', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 20, alignSelf: 'center' }}>
+            {!isEmpty(coordinateDetails) && <Pressable onPress={() => clearRoute()} style={{ backgroundColor: '#fff', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 20, alignSelf: 'center' }}>
+              <Text>Clear</Text>
+            </Pressable>}
+            <Pressable onPress={() => /* fetchRoute(pathCoordinates) */ {
+              cameraRef?.current?.setCamera({
+                centerCoordinate: userLocation,
+                zoomLevel: 17,
+                animationDuration: 2000,
+              })
+              setSearchLocation('')
+              setPathCoordinates([])
+              setWayPoints([]);
+              setRouteCoords([]);
+              setInstructions([])
+              setSearchTerm('')
+              setLocationOnPress([])
+              setRouteData([])
+              setCoordinateDetails([])
+            }} style={{ backgroundColor: '#fff', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 20, alignSelf: 'center' }}>
               <Text>Current</Text>
             </Pressable>
           </View>
-          {!isEmpty(locationOnPress) && !isEmpty(coordinateDetails) && < View style={{ width: WIDTH, height: HEIGHT * 0.3, backgroundColor: 'white', borderRadius: 10, padding: WIDTH * 0.05 }}>
+          {(!isEmpty(coordinateDetails)) && < View style={{ width: WIDTH, height: HEIGHT * 0.3, backgroundColor: 'white', borderRadius: 10, padding: WIDTH * 0.05 }}>
             <Text style={{ color: 'black', fontSize: 20 }}>{coordinateDetails?.features?.[0]?.properties?.label}</Text>
             <Text style={{ color: 'black', fontSize: 15 }}>{coordinateDetails?.features?.[0]?.properties?.county}, {coordinateDetails?.features?.[0]?.properties?.region}</Text>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}><Pressable onPress={() => addtoRoute()} style={{ backgroundColor: '#3275a8', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 20, maxWidth: WIDTH * 0.3, justifyContent: 'center', alignItems: 'center' }}>
-              {pathCoordinates?.length > 0 ? <Text style={{ color: 'white' }}>{`Add more location \nto the route`}</Text> : <Text style={{ color: 'white' }}>Add to route</Text>}
-            </Pressable>
-              <Pressable style={{ height: WIDTH * 0.08, width: WIDTH * 0.08 }}><Image source={loveIcon2} resizeMode='contain' style={{ tintColor: 'black' }} /></Pressable>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>{!isEmpty(pathCoordinates) ? <Pressable onPress={() => clearRoute()} style={{ backgroundColor: '#3275a8', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 20, maxWidth: WIDTH * 0.3, justifyContent: 'center', alignItems: 'center' }}>
+              <Text style={{ color: 'white' }}>{'Clear route'}</Text>
+            </Pressable> : <Pressable onPress={() => addtoRoute(coordinateDetails?.features?.[0]?.geometry?.coordinates)} style={{ backgroundColor: '#3275a8', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 20, maxWidth: WIDTH * 0.3, justifyContent: 'center', alignItems: 'center' }}>
+              {pathCoordinates?.length > 0 ? <Text style={{ color: 'white' }}>{`Add more location \nto the route`}</Text> : <Text style={{ color: 'white' }}>{routeData.length <= 1 ? 'Add to route' : 'Get route'}</Text>}
+            </Pressable>}
+              <Pressable onPress={() => handleFavourite(locationOnPress)} style={{ height: WIDTH * 0.08, width: WIDTH * 0.08 }}><Image source={loveIcon2} resizeMode='contain' style={{ tintColor: isFavourite ? 'red' : 'black' }} /></Pressable>
             </View>
 
 

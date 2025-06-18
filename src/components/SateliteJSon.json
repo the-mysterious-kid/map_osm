@@ -1,0 +1,38 @@
+{
+    "version": 8,
+    "name": "Satellite with Labels",
+    "sources": {
+        "satellite": {
+            "type": "raster",
+            "tiles": [
+                "https://api.maptiler.com/tiles/satellite/{z}/{x}/{y}.jpg?key=xCD6SwPjQGsUTmTDEB1q"
+            ],
+            "tileSize": 256,
+            "attribution": "© MapTiler"
+        },
+        "labels": {
+            "type": "raster",
+            "tiles": [
+                "https://api.maptiler.com/tiles/labels/{z}/{x}/{y}.png?key=xCD6SwPjQGsUTmTDEB1q"
+            ],
+            "tileSize": 256,
+            "attribution": "© MapTiler"
+        }
+    },
+    "layers": [
+        {
+            "id": "satellite",
+            "type": "raster",
+            "source": "satellite",
+            "minzoom": 0,
+            "maxzoom": 20
+        },
+        {
+            "id": "labels",
+            "type": "raster",
+            "source": "labels",
+            "minzoom": 0,
+            "maxzoom": 20
+        }
+    ]
+}
